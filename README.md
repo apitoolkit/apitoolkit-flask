@@ -41,4 +41,4 @@ app.run(debug=True)
 
 ```
 
-This will monitor all requests and send metadata to the API Toolkit dashboard.
+This will monitor all requests and send them to the APIToolkit's servers.
