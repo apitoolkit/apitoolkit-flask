@@ -2,18 +2,21 @@ from flask import request, g
 import requests  # type: ignore
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account  # type: ignore
+from jsonpath_ng import parse, jsonpath  # type: ignore
 import json
 import base64
 import time
 
 
 class APIToolkit:
-    def __init__(self, api_key,  debug, redact_headers=["Authorization", "Cookie"]):
+    def __init__(self, api_key, redact_headers=["Authorization", "Cookie"], redact_request_body=[], redact_response_body=[], debug=False):
         self.debug = debug
         self.publisher = None
         self.topic_name = None
         self.meta = None
         self.redact_headers = redact_headers
+        self.redact_request_body = redact_request_body
+        self.redact_response_body = redact_response_body
 
         try:
             response = requests.get(
@@ -49,7 +52,21 @@ class APIToolkit:
                 redacted_headers[header_name] = value
         return redacted_headers
 
+    def redact_fields(self, body, paths):
+        try:
+            data = json.loads(body)
+            for path in paths:
+                expr = parse(path)
+                expr.update(data, "[CLIENT_REDACTED]")
+            return json.dumps(data).encode("utf-8")
+        except Exception as e:
+            if isinstance(body, str):
+                return body.encode('utf-8')
+            return body
+
     def beforeRequest(self):
+        if self.debug:
+            print("APIToolkit: beforeRequest")
         request_method = request.method
         raw_url = request.full_path
         url_path = request.url_rule.rule
@@ -57,11 +74,13 @@ class APIToolkit:
         query_params = request.args.copy().to_dict()
         path_params = request.view_args.copy()
         request_headers = self.redact_headers_func(dict(request.headers))
+        content_type = request.headers.get('Content-Type', '')
 
-        if request.content_type == 'application/json':
+        if content_type == 'application/json':
             request_body = request.get_json()
-
-        if request.content_type == 'application/x-www-form-urlencoded':
+        if content_type == 'text/plain':
+            request_body = request.get_data().decode('utf-8')
+        if content_type == 'application/x-www-form-urlencoded' or 'multipart/form-data' in content_type:
             request_body = request.form.copy().to_dict()
 
         g.apitoolkit_request_data = {
@@ -78,31 +97,39 @@ class APIToolkit:
         }
 
     def afterRequest(self, response):
+        if self.debug:
+            print("APIToolkit: beforeRequest")
         end_time = time.perf_counter_ns()
         apitoolkit_request_data = g.get("apitoolkit_request_data", {})
         duration = (end_time - apitoolkit_request_data.get("start_time", 0))
         status_code = response.status_code
         request_body = json.dumps(
             apitoolkit_request_data.get("request_body", {}))
-        headers = self.redact_headers_func(dict(response.headers))
-        content = response.data
-        payload = {
-            "query_params": apitoolkit_request_data["query_params"],
-            "path_params": apitoolkit_request_data["path_params"],
-            "request_headers": apitoolkit_request_data.get("request_headers", {}),
-            "response_headers": dict(headers),
-            "proto_minor": 1,
-            "proto_major": 1,
-            "method": apitoolkit_request_data.get("method", ""),
-            "url_path": apitoolkit_request_data.get("url_path", ""),
-            "raw_url": apitoolkit_request_data.get("raw_url", ""),
-            "request_body": base64.b64encode(request_body.encode('utf-8')).decode("utf-8"),
-            "response_body": base64.b64encode(content.decode('utf-8').encode('utf-8')).decode("utf-8"),
-            "host": apitoolkit_request_data.get("host", ""),
-            "referer": apitoolkit_request_data.get("referer", ""),
-            "sdk_type": "PythonFlask",
-            "project_id": self.meta["project_id"],
-            "status_code": status_code,
-            "duration": duration,
-        }
-        self.publish_message(payload)
+        response_headers = self.redact_headers_func(dict(response.headers))
+        request_body = self.redact_fields(
+            request_body, self.redact_request_body)
+        response_body = self.redact_fields(
+            response.data, self.redact_response_body)
+        try:
+            payload = {
+                "query_params": apitoolkit_request_data["query_params"],
+                "path_params": apitoolkit_request_data["path_params"],
+                "request_headers": apitoolkit_request_data.get("request_headers", {}),
+                "response_headers": response_headers,
+                "proto_minor": 1,
+                "proto_major": 1,
+                "method": apitoolkit_request_data.get("method", ""),
+                "url_path": apitoolkit_request_data.get("url_path", ""),
+                "raw_url": apitoolkit_request_data.get("raw_url", ""),
+                "request_body": base64.b64encode(request_body).decode("utf-8"),
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "host": apitoolkit_request_data.get("host", ""),
+                "referer": apitoolkit_request_data.get("referer", ""),
+                "sdk_type": "PythonFlask",
+                "project_id": self.meta["project_id"],
+                "status_code": status_code,
+                "duration": duration,
+            }
+            self.publish_message(payload)
+        except Exception as e:
+            return None
