@@ -8,11 +8,12 @@ import time
 
 
 class APIToolkit:
-    def __init__(self, api_key, debug):
+    def __init__(self, api_key,  debug, redact_headers=["Authorization", "Cookie"]):
         self.debug = debug
         self.publisher = None
         self.topic_name = None
         self.meta = None
+        self.redact_headers = redact_headers
 
         try:
             response = requests.get(
@@ -39,6 +40,15 @@ class APIToolkit:
         future = self.publisher.publish(self.topic_name, data=data)
         return future.result()
 
+    def redact_headers_func(self, headers):
+        redacted_headers = {}
+        for header_name, value in headers.items():
+            if header_name.lower() in self.redact_headers or header_name in self.redact_headers:
+                redacted_headers[header_name] = "[CLIENT_REDACTED]"
+            else:
+                redacted_headers[header_name] = value
+        return redacted_headers
+
     def beforeRequest(self):
         request_method = request.method
         raw_url = request.full_path
@@ -46,6 +56,8 @@ class APIToolkit:
         request_body = None
         query_params = request.args.copy().to_dict()
         path_params = request.view_args.copy()
+        request_headers = self.redact_headers_func(dict(request.headers))
+
         if request.content_type == 'application/json':
             request_body = request.get_json()
 
@@ -55,7 +67,7 @@ class APIToolkit:
         g.apitoolkit_request_data = {
             "query_params": query_params,
             "path_params": path_params,
-            "request_headers": dict(request.headers),
+            "request_headers": request_headers,
             "method": request_method,
             "url_path": url_path,
             "raw_url": raw_url,
@@ -72,13 +84,15 @@ class APIToolkit:
         status_code = response.status_code
         request_body = json.dumps(
             apitoolkit_request_data.get("request_body", {}))
-        headers = response.headers
+        headers = self.redact_headers_func(dict(response.headers))
         content = response.data
         payload = {
             "query_params": apitoolkit_request_data["query_params"],
             "path_params": apitoolkit_request_data["path_params"],
             "request_headers": apitoolkit_request_data.get("request_headers", {}),
             "response_headers": dict(headers),
+            "proto_minor": 1,
+            "proto_major": 1,
             "method": apitoolkit_request_data.get("method", ""),
             "url_path": apitoolkit_request_data.get("url_path", ""),
             "raw_url": apitoolkit_request_data.get("raw_url", ""),
