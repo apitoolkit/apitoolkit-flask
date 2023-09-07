@@ -12,5 +12,6 @@ setup(
         'requests',
         'google-cloud-pubsub',
         'google-auth',
+        'jsonpath-ng',
     ],
 )
