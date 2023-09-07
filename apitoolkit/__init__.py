@@ -2,14 +2,14 @@ from flask import request, g
 import requests  # type: ignore
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account  # type: ignore
-from jsonpath_ng import parse, jsonpath  # type: ignore
+from jsonpath_ng import parse  # type: ignore
 import json
 import base64
 import time
 
 
 class APIToolkit:
-    def __init__(self, api_key, redact_headers=["Authorization", "Cookie"], redact_request_body=[], redact_response_body=[], debug=False):
+    def __init__(self, api_key, root_url="https://app.apitoolkit.io", redact_headers=["Authorization", "Cookie"], redact_request_body=[], redact_response_body=[], debug=False):
         self.debug = debug
         self.publisher = None
         self.topic_name = None
@@ -20,7 +20,7 @@ class APIToolkit:
 
         try:
             response = requests.get(
-                url="https://app.apitoolkit.io/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
+                url=root_url + "/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
             response.raise_for_status()
             data = response.json()
             credentials = service_account.Credentials.from_service_account_info(
