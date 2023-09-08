@@ -6,6 +6,8 @@ from jsonpath_ng import parse  # type: ignore
 import json
 import base64
 import time
+from datetime import datetime
+import pytz  # type: ignore
 
 
 class APIToolkit:
@@ -110,6 +112,8 @@ class APIToolkit:
             request_body, self.redact_request_body)
         response_body = self.redact_fields(
             response.data, self.redact_response_body)
+        timezone = pytz.timezone("UTC")
+        timestamp = datetime.now(timezone).isoformat()
         try:
             payload = {
                 "query_params": apitoolkit_request_data["query_params"],
@@ -129,6 +133,7 @@ class APIToolkit:
                 "project_id": self.meta["project_id"],
                 "status_code": status_code,
                 "duration": duration,
+                "timestamp": timestamp
             }
             self.publish_message(payload)
         except Exception as e:
