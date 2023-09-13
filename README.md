@@ -9,7 +9,7 @@ It monitors incoming traffic, gathers the requests and sends the request to the 
 
 ## How to Integrate:
 
-First install the apitoolkit Go sdk:
+First install the apitoolkit flask sdk:
 `pip install apitoolkit-flask`
 
 Then add apitoolkit to your app like so (flask example):
