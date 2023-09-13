@@ -20,7 +20,7 @@ exampleDataRedaction = [
 ]
 
 apitoolkit = APIToolkit(
-    api_key="x6EdJJJPPS0znIJP1qZsHmtG9GGQGtSev+6+1eQI8T0C8ojB",
+    api_key="<API_KEY>",
     root_url="http://localhost:8080",
     redact_headers=redact_headers,
     redact_request_body=redact_req,
