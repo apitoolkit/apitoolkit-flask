@@ -19,22 +19,18 @@ class APIToolkit:
         self.redact_headers = redact_headers
         self.redact_request_body = redact_request_body
         self.redact_response_body = redact_response_body
-
-        try:
-            response = requests.get(
-                url=root_url + "/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
-            response.raise_for_status()
-            data = response.json()
-            credentials = service_account.Credentials.from_service_account_info(
-                data["pubsub_push_service_account"])
-            self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
-            self.topic_name = 'projects/{project_id}/topics/{topic}'.format(
-                project_id=data['pubsub_project_id'],
-                topic=data['topic_id'],
-            )
-            self.meta = data
-        except Exception as e:
-            print(f"Error fetching meta data: {str(e)}")
+        response = requests.get(
+            url=root_url + "/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
+        response.raise_for_status()
+        data = response.json()
+        credentials = service_account.Credentials.from_service_account_info(
+            data["pubsub_push_service_account"])
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        self.topic_name = 'projects/{project_id}/topics/{topic}'.format(
+            project_id=data['pubsub_project_id'],
+            topic=data['topic_id'],
+        )
+        self.meta = data
 
     def publish_message(self, payload):
         data = json.dumps(payload).encode('utf-8')
@@ -100,7 +96,7 @@ class APIToolkit:
 
     def afterRequest(self, response):
         if self.debug:
-            print("APIToolkit: beforeRequest")
+            print("APIToolkit: afterRequest")
         end_time = time.perf_counter_ns()
         apitoolkit_request_data = g.get("apitoolkit_request_data", {})
         duration = (end_time - apitoolkit_request_data.get("start_time", 0))
