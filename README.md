@@ -16,7 +16,7 @@ Then add apitoolkit to your app like so (flask example):
 
 ```python
 from flask import Flask
-from apitoolkit import APIToolkit
+from apitoolkit_flask import APIToolkit
 
 app = Flask(__name__)
 
@@ -53,7 +53,7 @@ Eg:
 
 ```python
 from flask import Flask
-from apitoolkit import APIToolkit
+from apitoolkit_flask import APIToolkit
 
 app = Flask(__name__)
 
