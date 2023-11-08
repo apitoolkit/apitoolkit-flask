@@ -1,3 +1,4 @@
+import uuid
 from flask import request, g
 import requests  # type: ignore
 from google.cloud import pubsub_v1
@@ -8,10 +9,11 @@ import base64
 import time
 from datetime import datetime
 import pytz  # type: ignore
+from apitoolkit_python import observe_request, report_error
 
 
 class APIToolkit:
-    def __init__(self, api_key, root_url="https://app.apitoolkit.io", redact_headers=["Authorization", "Cookie"], redact_request_body=[], redact_response_body=[], debug=False):
+    def __init__(self, api_key, root_url="https://app.apitoolkit.io", redact_headers=["Authorization", "Cookie"], redact_request_body=[], redact_response_body=[], debug=False, service_version=None, tags=[]):
         self.debug = debug
         self.publisher = None
         self.topic_name = None
@@ -19,6 +21,8 @@ class APIToolkit:
         self.redact_headers = redact_headers
         self.redact_request_body = redact_request_body
         self.redact_response_body = redact_response_body
+        self.service_version = service_version
+        self.tags = tags
         response = requests.get(
             url=root_url + "/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
         response.raise_for_status()
@@ -31,6 +35,9 @@ class APIToolkit:
             topic=data['topic_id'],
         )
         self.meta = data
+
+    def getInfo(self):
+        return {"project_id": self.meta["project_id"], "service_version": self.service_version, "tags": self.tags}
 
     def publish_message(self, payload):
         data = json.dumps(payload).encode('utf-8')
@@ -93,6 +100,9 @@ class APIToolkit:
             "host": request.host,
             "referer": request.headers.get('Referer', "")
         }
+        request.apitoolkit_message_id = str(uuid.uuid4())
+        request.apitoolkit_errors = []
+        request.apitoolkit_client = self
 
     def afterRequest(self, response):
         if self.debug:
@@ -110,6 +120,7 @@ class APIToolkit:
             response.data, self.redact_response_body)
         timezone = pytz.timezone("UTC")
         timestamp = datetime.now(timezone).isoformat()
+        message_id = request.apitoolkit_message_id
         try:
             payload = {
                 "query_params": apitoolkit_request_data["query_params"],
@@ -128,7 +139,10 @@ class APIToolkit:
                 "sdk_type": "PythonFlask",
                 "project_id": self.meta["project_id"],
                 "status_code": status_code,
+                "msg_id": message_id,
+                "errors": request.apitoolkit_errors or [],
                 "duration": duration,
+                "parent_id": None,
                 "timestamp": timestamp
             }
             self.publish_message(payload)
