@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apitoolkit-flask"
-version = "0.0.1"
+version = "0.2.0"
 description = "APIToolkit SDK for Flask"
 authors = [{ name = "Anthony ALaribe", email = "anthonyalaribe@gmail.com" }]
 license = { file = "LICENSE" }
@@ -22,7 +22,7 @@ dependencies = [
 requires-python = ">=3.8"
 
 [project.urls]
-Homepage = "https://github.com/apitoolkit/apitoolkit-django"
+Homepage = "https://github.com/apitoolkit/apitoolkit-flask"
 
 [tool.setuptools.dynamic]
 readme = {file=["README.md"]}
