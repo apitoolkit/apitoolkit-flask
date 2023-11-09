@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="apitoolkit_flask",
+    name="apitoolkit-flask",
     version="0.2.0",
     packages=find_packages(),
     description='A Flask SDK for Apitoolkit integration',
