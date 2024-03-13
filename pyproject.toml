@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apitoolkit-flask"
-version = "0.2.2"
+version = "0.3.0"
 description = "APIToolkit SDK for Flask"
 authors = [{ name = "Anthony ALaribe", email = "anthonyalaribe@gmail.com" }]
 license = { file = "LICENSE" }
@@ -18,7 +18,16 @@ classifiers = [
 ]
 keywords = ["API", "APIToolkit", "Observability", "API Monitoring"]
 dependencies = [
+  'Flask',
+  'requests',
+  'google-cloud-pubsub',
+  'google-auth',
+  'jsonpath-ng',
+  'jsonpath-ng',
+  'pytz',
+  'apitoolkit-python',
 ]
+
 requires-python = ">=3.8"
 
 [project.urls]

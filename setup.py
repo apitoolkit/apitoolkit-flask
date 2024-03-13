@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="apitoolkit-flask",
-    version="0.2.2",
+    version="0.3.0",
     packages=find_packages(),
     description='A Flask SDK for Apitoolkit integration',
     long_description=long_description,
@@ -18,6 +18,8 @@ setup(
         'google-cloud-pubsub',
         'google-auth',
         'jsonpath-ng',
-        'apitoolkit-python'
+        'jsonpath-ng',
+        'pytz',
+        'apitoolkit-python',
     ],
 )

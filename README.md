@@ -122,7 +122,46 @@ The `observe_request` function wraps an HTTPX client, allowing you to use it sea
 
 # Error Reporting
 
-If you're familiar with sentry, bugsnag, or rollbar, you'll easily grasp this use case. However, with APIToolkit, errors are always linked to a parent request, enabling you to query and associate errors that occurred while serving a specific customer request. To report errors to APIToolkit, utilize the `report_error` function from the `apitoolkit_flask` module. You can report as many errors as needed during a request.
+If you're familiar with sentry, bugsnag, or rollbar, you'll easily grasp this use case. However, with APIToolkit, errors are always linked to a parent request, enabling you to query and associate errors that occurred while serving a specific customer request.
+
+## Reporting unhandled exceptions
+
+To report unhandled exceptions that happened during a request, you can use the `handle_error` method on the APIToolkit class in your errorHandler function
+
+### Example
+
+```python
+from flask import Flask
+from apitoolkit_flask import APIToolkit
+
+app = Flask(__name__)
+apitoolkit = APIToolkit(api_key="<API_KEY>", debug=True)
+
+@app.before_request
+def before_request():
+    apitoolkit.beforeRequest()
+
+@app.after_request
+def after_request(response):
+    apitoolkit.afterRequest(response)
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    apitoolkit.handle_error(e)
+    # now handle the error how you please.
+    return {"message": "something went wrong"}, 500
+
+@app.route('/hello', methods=['GET', 'POST'])
+def sample_route(subject):
+    return {"Hello": "World"}
+
+app.run(debug=True)
+```
+
+### Report handled errors
+
+You can also report handled errors to APIToolkit, utilize the `report_error` function from the `apitoolkit_flask` module. You can report as many errors as needed during a request.
 
 ### Example
 

@@ -10,6 +10,8 @@ import time
 from datetime import datetime
 import pytz  # type: ignore
 from apitoolkit_python import observe_request, report_error
+from werkzeug.exceptions import HTTPException
+
 
 
 class APIToolkit:
@@ -74,10 +76,10 @@ class APIToolkit:
             print("APIToolkit: beforeRequest")
         request_method = request.method
         raw_url = request.full_path
-        url_path = request.url_rule.rule
+        url_path = request.url_rule.rule if request.url_rule is not None else request.full_path
         request_body = None
         query_params = request.args.copy().to_dict()
-        path_params = request.view_args.copy()
+        path_params = request.view_args.copy() if request.view_args is not None else {}
         request_headers = self.redact_headers_func(dict(request.headers))
         content_type = request.headers.get('Content-Type', '')
 
@@ -148,3 +150,6 @@ class APIToolkit:
             self.publish_message(payload)
         except Exception as e:
             return None
+    def handle_error(self, e):
+     if not isinstance(e, HTTPException):
+        report_error(request, e) 
