@@ -18,7 +18,6 @@ setup(
         'google-cloud-pubsub',
         'google-auth',
         'jsonpath-ng',
-        'jsonpath-ng',
         'pytz',
         'apitoolkit-python',
     ],
