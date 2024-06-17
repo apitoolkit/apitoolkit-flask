@@ -48,6 +48,7 @@ apitoolkit = APIToolkit(
 )
 
 
+# Initialize APItoolkit
 @app.before_request
 def before_request():
     apitoolkit.beforeRequest()
