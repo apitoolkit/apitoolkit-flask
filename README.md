@@ -40,15 +40,14 @@ from apitoolkit_flask import APIToolkit
 
 app = Flask(__name__)
 
+# Initialize APItoolkit
 apitoolkit = APIToolkit(
-    api_key = "{ENTER_YOUR_API_KEY_HERE}"
-    debug = False
-    tags = ["environment: production", "region: us-east-1"]
+    api_key = "{ENTER_YOUR_API_KEY_HERE}",
+    debug = False,
+    tags = ["environment: production", "region: us-east-1"],
     service_version = "v2.0"
 )
 
-
-# Initialize APItoolkit
 @app.before_request
 def before_request():
     apitoolkit.beforeRequest()
@@ -57,10 +56,10 @@ def before_request():
 def after_request(response):
     apitoolkit.afterRequest(response)
     return response
-
+# END Initialize APItoolkit
 
 @app.route('/hello', methods=['GET', 'POST'])
-def sample_route(subject):
+def sample_route():
     return {"Hello": "World"}
 
 app.run(debug=True)
