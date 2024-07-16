@@ -27,21 +27,31 @@ class APIToolkit:
         self.tags = tags
         response = requests.get(
             url=root_url + "/api/client_metadata", headers={"Authorization": f"Bearer {api_key}"})
-        response.raise_for_status()
-        data = response.json()
-        credentials = service_account.Credentials.from_service_account_info(
-            data["pubsub_push_service_account"])
-        self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
-        self.topic_name = 'projects/{project_id}/topics/{topic}'.format(
-            project_id=data['pubsub_project_id'],
-            topic=data['topic_id'],
-        )
-        self.meta = data
+        if response.status_code == 401:
+            raise Exception(f"APIToolkit Error: Invalid API key")
+        elif response.status_code >= 400:
+            print(f"APIToolkit: Error getting client metadata {response.status_code}")     
+        else: 
+           data = response.json()
+           credentials = service_account.Credentials.from_service_account_info(
+               data["pubsub_push_service_account"])
+           self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
+           self.topic_name = 'projects/{project_id}/topics/{topic}'.format(
+               project_id=data['pubsub_project_id'],
+               topic=data['topic_id'],
+           )
+           self.meta = data
 
     def getInfo(self):
         return {"project_id": self.meta["project_id"], "service_version": self.service_version, "tags": self.tags}
 
     def publish_message(self, payload):
+
+        if self.topic_name is None or self.publisher is None:
+          if self.debug:
+            print("APIToolkit: No topic or publisher (restart your server to fix)")
+          return
+
         data = json.dumps(payload).encode('utf-8')
         if self.debug:
             print("APIToolkit: publish message")
@@ -109,6 +119,12 @@ class APIToolkit:
     def afterRequest(self, response):
         if self.debug:
             print("APIToolkit: afterRequest")
+
+        if self.meta is None:
+          if self.debug:
+            print("APIToolkit: Project ID not set (restart your server to fix)")
+          return 
+        
         end_time = time.perf_counter_ns()
         apitoolkit_request_data = g.get("apitoolkit_request_data", {})
         duration = (end_time - apitoolkit_request_data.get("start_time", 0))

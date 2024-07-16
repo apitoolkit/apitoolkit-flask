@@ -1,0 +1,99 @@
+name: Release Python Package
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout project repository
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Setup Python environment
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install wheel twine
+
+      # Extract version from tag
+      - name: Get version from tag
+        run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      # Determine if it's a pre-release
+      - name: Check if pre-release
+        run: |
+          if [[ ${{ env.NEW_VERSION }} == *"-"* ]]; then
+            echo "RELEASE_TAG=beta" >> $GITHUB_ENV
+          else
+            echo "RELEASE_TAG=latest" >> $GITHUB_ENV
+          fi
+
+      # Update changelog unreleased section with new version
+      - name: Update changelog
+        uses: superfaceai/release-changelog-action@v1
+        with:
+          path-to-changelog: CHANGELOG.md
+          version: ${{ env.NEW_VERSION }}
+          operation: release
+
+      - name: Update version
+        run: |
+          sed -i "s/version=.*,/version='${{ env.NEW_VERSION }}',/" setup.py
+
+      # Configure Git
+      - name: Git configuration
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
+
+      # Commit changes
+      - name: Commit version and changelog
+        run: |
+          git add CHANGELOG.md
+          git add setup.py
+          git commit -m "chore: release ${{ env.NEW_VERSION }}"
+
+      # Push changes and tags
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin HEAD:main
+
+      # Build package
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload dist/*
+
+      # Read version changelog
+      - id: get-changelog
+        name: Get version changelog
+        uses: superfaceai/release-changelog-action@v1
+        with:
+          path-to-changelog: CHANGELOG.md
+          version: ${{ env.NEW_VERSION }}
+          operation: read
+
+      # Update GitHub release with changelog
+      - name: Update GitHub release documentation
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.NEW_VERSION }}
+          body: ${{ steps.get-changelog.outputs.changelog }}
+          prerelease: ${{ startsWith(github.event.inputs.release-type, 'pre') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

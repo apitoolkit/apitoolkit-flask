@@ -1,7 +1,7 @@
+from apitoolkit_flask import APIToolkit
 from flask import Flask, request, jsonify
 from werkzeug.test import Client
 import sys
-from . import APIToolkit
 import base64
 import json
 
@@ -20,8 +20,7 @@ exampleDataRedaction = [
 ]
 
 apitoolkit = APIToolkit(
-    api_key="<API_KEY>",
-    root_url="http://localhost:8080",
+    api_key="",
     redact_headers=redact_headers,
     redact_request_body=redact_req,
     redact_response_body=exampleDataRedaction,
