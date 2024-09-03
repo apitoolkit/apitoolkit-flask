@@ -30,8 +30,8 @@ class APIToolkit:
         if response.status_code == 401:
             raise Exception(f"APIToolkit Error: Invalid API key")
         elif response.status_code >= 400:
-            print(f"APIToolkit: Error getting client metadata {response.status_code}")     
-        else: 
+            print(f"APIToolkit: Error getting client metadata {response.status_code}")
+        else:
            data = response.json()
            credentials = service_account.Credentials.from_service_account_info(
                data["pubsub_push_service_account"])
@@ -123,8 +123,8 @@ class APIToolkit:
         if self.meta is None:
           if self.debug:
             print("APIToolkit: Project ID not set (restart your server to fix)")
-          return 
-        
+          return
+
         end_time = time.perf_counter_ns()
         apitoolkit_request_data = g.get("apitoolkit_request_data", {})
         duration = (end_time - apitoolkit_request_data.get("start_time", 0))
@@ -134,8 +134,11 @@ class APIToolkit:
         response_headers = self.redact_headers_func(dict(response.headers))
         request_body = self.redact_fields(
             request_body, self.redact_request_body)
-        response_body = self.redact_fields(
+        response_body = ""
+        if not response.direct_passthrough:
+          response_body = self.redact_fields(
             response.data, self.redact_response_body)
+
         timezone = pytz.timezone("UTC")
         timestamp = datetime.now(timezone).isoformat()
         message_id = request.apitoolkit_message_id
@@ -168,4 +171,4 @@ class APIToolkit:
             return None
     def handle_error(self, e):
      if not isinstance(e, HTTPException):
-        report_error(request, e) 
+        report_error(request, e)
